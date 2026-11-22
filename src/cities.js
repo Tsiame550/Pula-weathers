@@ -7,7 +7,8 @@ const COUNTRIES = {
       { id: 'ls-maseru', name: 'Maseru', lat: -29.3167, lon: 27.4833 },
       { id: 'ls-teyateyaneng', name: 'Teyateyaneng', lat: -29.1472, lon: 27.7422 },
       { id: 'ls-mafeteng', name: 'Mafeteng', lat: -29.8229, lon: 27.2381 },
-      { id: 'ls-hlotse', name: 'Hlotse', lat: -28.8719, lon: 28.0460 },
+      { id: 'ls-hlotse', name: 'Leribe (Hlotse)', aliases: ['Leribe', 'Hlotse', 'Khlotse'], region: 'Leribe District', lat: -28.871849, lon: 28.045009 },
+      { id: 'ls-maputsoe', name: 'Maputsoe', aliases: ['Maputsoe, Leribe'], region: 'Leribe District', lat: -28.886597, lon: 27.899145 },
       { id: 'ls-butha-buthe', name: 'Butha-Buthe', lat: -28.7666, lon: 28.2494 },
       { id: 'ls-mohales-hoek', name: "Mohale's Hoek", lat: -30.1517, lon: 27.4769 },
       { id: 'ls-quthing', name: 'Quthing', lat: -30.4000, lon: 27.7000 },
@@ -33,4 +34,9 @@ const COUNTRIES = {
     ]
   }
 };
-module.exports = { COUNTRIES };
+function cityMatchesSearch(city, search) {
+  const q=String(search||'').trim().toLocaleLowerCase();
+  if (!q) return true;
+  return [city.name, city.region, ...(city.aliases || [])].filter(Boolean).some(value=>value.toLocaleLowerCase().includes(q));
+}
+module.exports = { COUNTRIES, cityMatchesSearch };

@@ -2,7 +2,8 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {ActivityIndicator,Linking,Modal,ScrollView,Text,TextInput,TouchableOpacity,View} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import WebSurface from './WebSurface';
-import { COUNTRIES } from './cities';
+import MapExplorer from './MapExplorer';
+import { COUNTRIES, cityMatchesSearch } from './cities';
 import {fetchWeather} from './weather';
 import {BACKEND_URL,configured,fetchTraffic,fetchRoute,externalDirectionsUrl,getTripWeatherAdvice} from './trafficTravel';
 import {trafficMapHtml,routeMapHtml} from './trafficMapHtml';
@@ -37,9 +38,7 @@ export function TrafficPage({city,theme,refreshToken}){
       <Text style={{fontSize:12,color:theme.muted,marginTop:7,lineHeight:19}}>{state.connected?'TomTom-reported road incidents and flow layer. Not every road or event may have data.':'Map is available. Add a PULA traffic backend to enable live congestion colors and incident reports.'}</Text>
       {state.connected&&state.fetchedAt?<Text style={{color:theme.muted,fontSize:10,marginTop:9}}>Fetched {new Date(state.fetchedAt).toLocaleTimeString()}</Text>:null}
     </Panel>
-    <View style={{height:390,borderRadius:19,overflow:'hidden',backgroundColor:theme.cardLight,marginBottom:12}}>
-      <WebSurface key={`${city.id}:${state.connected}`} source={{html:map}} originWhitelist={['*']} javaScriptEnabled scrollEnabled style={{flex:1,backgroundColor:theme.cardLight}} />
-    </View>
+    <MapExplorer key={city.id} html={map} theme={theme} title={`Traffic around ${city.name}`} height={360}/>
     <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
       <Text style={{fontSize:11,color:theme.muted}}>Base map: OpenStreetMap · Traffic: TomTom</Text>
       <SmallButton onPress={()=>setManual(n=>n+1)} icon="refresh-cw" theme={theme}>Refresh</SmallButton>
@@ -85,7 +84,7 @@ export function TravelPage({city,theme,refreshToken}){
   },[toId,refreshToken]);
   const map=useMemo(()=>routeMapHtml(origin,destination,route?.points||[]),[fromId,toId,route]);
   function openDirections(){Linking.openURL(externalDirectionsUrl(origin,destination)).catch(()=>{});}
-  const filtered=ALL.filter(c=>(c.name+' '+c.countryName).toLowerCase().includes(query.toLowerCase()));
+  const filtered=ALL.filter(c=>cityMatchesSearch(c,query)||(c.countryName||'').toLowerCase().includes(query.toLowerCase()));
   function selectCity(id){if(pick==='from')setFromId(id);else setToId(id);setQuery('');setPick(null);}
   return <>
     <Title pre="DRIVE SMARTER · CROSS-BORDER TRIPS" theme={theme}>Plan a journey.</Title>
@@ -113,9 +112,7 @@ export function TravelPage({city,theme,refreshToken}){
       {routeBusy?<Text style={{color:theme.muted,marginTop:8}}>Checking roads and traffic…</Text>:null}
       {routeError?<Text style={{color:theme.danger,marginTop:8}}>{routeError}</Text>:null}
     </Panel>
-    <View style={{height:315,borderRadius:19,overflow:'hidden',backgroundColor:theme.cardLight,marginBottom:14}}>
-      <WebSurface source={{html:map}} originWhitelist={['*']} javaScriptEnabled scrollEnabled style={{flex:1,backgroundColor:theme.cardLight}} />
-    </View>
+    <MapExplorer html={map} theme={theme} title={`${origin.name} to ${destination.name}`} height={315}/>
     {!route?<Text style={{color:theme.muted,fontSize:11,lineHeight:17,marginBottom:11}}>Pins show the two cities. They do not represent a road route. Connect routing to display actual road geometry.</Text>:null}
     <TouchableOpacity onPress={openDirections} disabled={same} style={{borderRadius:15,backgroundColor:theme.accent,padding:17,alignItems:'center',flexDirection:'row',justifyContent:'center',gap:9,opacity:same ? 0.5 : 1}}>
       <Feather name="navigation" size={18} color={theme.accentInk}/><Text style={{color:theme.accentInk,fontSize:14,fontWeight:'900'}}>Open driving directions</Text>
