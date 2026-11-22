@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "PULA Weather, Traffic & Travel",
+    "slug": "pula-weather",
+    "version": "3.1.0",
+    "orientation": "portrait",
+    "scheme": "pulaweather",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#090F18",
+    "android": {
+      "package": "com.pula.weather",
+      "adaptiveIcon": {
+        "backgroundColor": "#090F18"
+      },
+      "permissions": []
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PULA uses your location only to find the nearest supported city."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "web": {
+      "name": "PULA Weather \u00b7 Traffic \u00b7 Travel",
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
