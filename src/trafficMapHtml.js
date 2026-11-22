@@ -1,12 +1,20 @@
-/** Maps show actual TomTom road geometry only when API is connected. */
-function serialize(value) { return JSON.stringify(value).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026'); }
-function mapShell(body, data) {
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>html,body,#map{margin:0;width:100%;height:100%;background:#dce7e0;font-family:system-ui} .leaflet-control-attribution{font-size:9px!important}.tag{font:700 11px system-ui;padding:5px 8px;border-radius:10px;background:#173f37;color:#fff;box-shadow:0 3px 12px #0004}.pin{background:#cc5735;border:2px solid #fff;width:13px;height:13px;border-radius:100%;box-shadow:0 2px 7px #0008}.leaflet-popup-content{font-size:12px;line-height:1.5}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>const DATA=${serialize(data)};if(window.L){const map=L.map('map',{zoomControl:true,attributionControl:true});L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);${body}}</script></body></html>`;
+const {mapDocument} = require('./mapHtmlCore');
+/** Street/satellite layers are real basemaps; traffic overlays are served by PULA's server only when connected. */
+function trafficMapHtml(city,incidents,connected,base) {
+ const safeIncidents=(incidents||[]).filter(i=>Array.isArray(i.coordinates)&&i.coordinates.length===2);
+ return mapDocument({city:{name:city.name,lat:city.lat,lon:city.lon},incidents:safeIncidents,connected:Boolean(connected),base:connected?base:''},`
+map.setView([DATA.city.lat,DATA.city.lon],12);
+if(DATA.connected&&DATA.base){map.createPane('liveTraffic');map.getPane('liveTraffic').style.zIndex=450;map.getPane('liveTraffic').style.pointerEvents='none';L.tileLayer(DATA.base+'/api/flow/{z}/{x}/{y}.png',{pane:'liveTraffic',maxNativeZoom:18,maxZoom:19,opacity:.81,attribution:'Traffic &copy; TomTom'}).addTo(map);}
+for(const inc of DATA.incidents){const marker=L.marker(inc.coordinates,{icon:L.divIcon({html:'<div class="incident"></div>',className:'',iconSize:[20,20]})}).addTo(map);const box=document.createElement('div');const a=document.createElement('strong');a.textContent=inc.category||'Traffic incident';const desc=document.createElement('p');desc.textContent=inc.description||'';const road=document.createElement('small');road.textContent=inc.road||'';box.append(a,desc,road);marker.bindPopup(box);}
+`);
 }
-function trafficMapHtml(city, incidents, connected, base) {
-  return mapShell(`map.setView([DATA.city.lat,DATA.city.lon],12);if(DATA.connected&&DATA.base){L.tileLayer(DATA.base+'/api/flow/{z}/{x}/{y}.png',{maxZoom:18,opacity:.86,attribution:'Traffic &copy; TomTom'}).addTo(map);}for(const inc of DATA.incidents){if(!inc.coordinates)continue;const m=L.marker(inc.coordinates,{icon:L.divIcon({html:'<div class="pin"></div>',className:'',iconSize:[16,16]})}).addTo(map);const div=document.createElement('div');div.textContent=inc.category+': '+inc.description+(inc.road?' · '+inc.road:'');m.bindPopup(div);}`, {city:{lat:city.lat,lon:city.lon},incidents:(incidents||[]).filter(i=>i.coordinates),connected,base:connected?base:''});
+function routeMapHtml(origin,destination,points){
+ return mapDocument({from:{name:origin.name,lat:origin.lat,lon:origin.lon},to:{name:destination.name,lat:destination.lat,lon:destination.lon},points:points||[]},`
+const first=L.marker([DATA.from.lat,DATA.from.lon]).addTo(map).bindTooltip('Start: '+DATA.from.name);
+const last=L.marker([DATA.to.lat,DATA.to.lon]).addTo(map).bindTooltip('Destination: '+DATA.to.name);
+const group=L.featureGroup([first,last]);
+if(DATA.points.length>1){const road=L.polyline(DATA.points,{color:'#27866f',weight:5,opacity:.94}).addTo(map);group.addLayer(road);}
+map.fitBounds(group.getBounds().pad(.28),{maxZoom:13,animate:false});
+`);
 }
-function routeMapHtml(origin,destination,points) {
-  return mapShell(`const a=L.marker([DATA.from.lat,DATA.from.lon]).addTo(map).bindTooltip('Start: '+DATA.from.name);const b=L.marker([DATA.to.lat,DATA.to.lon]).addTo(map).bindTooltip('Destination: '+DATA.to.name);const layer=L.featureGroup([a,b]);if(DATA.points.length>1){const road=L.polyline(DATA.points,{color:'#287a68',weight:6,opacity:.93}).addTo(map);layer.addLayer(road);}map.fitBounds(layer.getBounds().pad(.35));`,{from:origin,to:destination,points:points||[]});
-}
-module.exports = {trafficMapHtml,routeMapHtml};
+module.exports={trafficMapHtml,routeMapHtml};

@@ -21,7 +21,7 @@ import * as Location from './src/locationService';
 import * as Notifications from './src/notificationService';
 import { buildSceneHtml } from './src/sceneHtml';
 import { getSceneForWeather } from './src/sceneMapping';
-import { COUNTRIES } from './src/cities';
+import { COUNTRIES, cityMatchesSearch } from './src/cities';
 import {
   fetchWeather,
   formatTemperature,
@@ -102,7 +102,7 @@ export default function App() {
   const country = COUNTRIES[selection.country];
   const city = country.cities.find((c) => c.id === selection.cityId) || country.cities[0];
   const availableCities = useMemo(
-    () => country.cities.filter((item) => item.name.toLowerCase().includes(citySearch.trim().toLowerCase())),
+    () => country.cities.filter((item) => cityMatchesSearch(item, citySearch)),
     [country, citySearch]
   );
 

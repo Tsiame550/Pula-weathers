@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Linking, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import WebSurface from './WebSurface';
+import MapExplorer from './MapExplorer';
 import { buildMapHtml } from './mapHtml';
 import { findRainWindow, getForecastAdvisories, getDailyBriefing, getFarmInsights, aqiLabel } from './insights';
 import { getHour } from './weather';
@@ -100,26 +101,23 @@ export function ExtendedDetails({ forecast, airQuality, airError, theme }) {
     <Text style={{ color: theme.muted, marginTop: 5, fontSize: 11 }}>Air quality: {airQuality ? aqiLabel(airQuality.aqi) : (airError ? 'Unavailable now' : 'Loading or unavailable')} · Modelled, not a local sensor measurement.</Text>
   </>;
 }
-export function MapPage({ theme, points, loading, error, layer, setLayer, selectedId, onSelect, onReload }) {
-  const html = useMemo(() => buildMapHtml(points, layer, selectedId), [points,layer,selectedId]);
-  const layers = [ ['temperature','Temperature'],['precipitation','Rainfall'],['wind','Wind'],['cloud','Clouds'] ];
+export function MapPage({ theme, points, loading, error, selectedId, onSelect, onReload }) {
+  // Metric and base-map switches live inside Leaflet, so map position never
+  // jumps back to the start on each switch.
+  const html = useMemo(() => buildMapHtml(points, 'temperature', selectedId), [points, selectedId]);
   return <>
     <Heading sub="Lesotho & South Africa" theme={theme}>Regional weather map</Heading>
-    <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18, marginBottom: 13 }}>Interactive city conditions on a geographic map. Rainfall shows recent modelled precipitation at pins, not radar imagery.</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom:14}} contentContainerStyle={{gap:8}}>
-      {layers.map(([key,label])=><TouchableOpacity key={key} onPress={()=>setLayer(key)} style={{ paddingHorizontal:14,paddingVertical:10,borderRadius:12,backgroundColor:layer===key?theme.accent:theme.card }}><Text style={{color:layer===key?theme.accentInk:theme.white,fontWeight:'700'}}>{label}</Text></TouchableOpacity>)}
-    </ScrollView>
-    <View style={{ height: 485, borderRadius: 20, backgroundColor: theme.cardLight, overflow: 'hidden' }}>
-      <WebSurface source={{html}} originWhitelist={['*']} javaScriptEnabled scrollEnabled={false}
-        onMessage={(event)=>{
-          try { const data=JSON.parse(event.nativeEvent.data); if(data.type==='select-city' && typeof data.cityId==='string') onSelect(data.cityId); } catch (_) {}
-        }}
-        style={{flex:1,backgroundColor:theme.cardLight}} />
-    </View>
-    <TouchableOpacity onPress={onReload} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, gap: 8 }}><Feather name="refresh-cw" color={theme.accent} size={15}/><Text style={{color:theme.accent,fontWeight:'700'}}>Refresh city map readings</Text></TouchableOpacity>
+    <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18, marginBottom: 13 }}>
+      Search Leribe, Maputsoe or another town; explore the map at full size to pan and zoom smoothly. Satellite imagery is a basemap, not live weather radar.
+    </Text>
+    <MapExplorer title="Regional weather map" html={html} theme={theme} height={385}
+      onMessage={(event)=>{try {const msg=JSON.parse(event.nativeEvent.data);if(msg.type==='select-city'&&typeof msg.cityId==='string')onSelect(msg.cityId);}catch(_){}}}/>
+    <TouchableOpacity onPress={onReload} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, gap: 8 }}>
+      <Feather name="refresh-cw" color={theme.accent} size={15}/><Text style={{color:theme.accent,fontWeight:'700'}}>Refresh city readings</Text>
+    </TouchableOpacity>
     {loading ? <Text style={{color:theme.muted,fontSize:12}}>Loading regional weather readings…</Text> : null}
     {error ? <Text style={{color:theme.danger,fontSize:12}}>{error}</Text> : null}
-    <Text style={{color:theme.muted,fontSize:11,lineHeight:17}}>Requires internet for OpenStreetMap tiles and map library. Map data: Open-Meteo. Tap a city pin to open its forecast.</Text>
+    <Text style={{color:theme.muted,fontSize:11,lineHeight:17}}>Map pins show modelled city readings, not continuous meteorological radar. Satellite imagery may have varying dates and resolution.</Text>
   </>;
 }
 export function FarmPage({ forecast, theme }) {
